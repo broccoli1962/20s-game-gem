@@ -24,6 +24,8 @@ namespace DdaIT.DungeonRun
         private readonly UnityEngine.UI.Image _slash;
         private readonly UnityEngine.UI.Image _flash;
         private readonly UnityEngine.UI.Image _clockBar;
+        private readonly UnityEngine.UI.Image _recoveryBar;
+        private readonly TMP_Text _streak;
         private readonly RectTransform _hud;
         private readonly RectTransform _menu;
         private readonly TMP_Text _clock;
@@ -80,11 +82,15 @@ namespace DdaIT.DungeonRun
             var scoreCard = Card(_hud, "Score", .825f, .84f, .975f, .98f);
             Label(scoreCard, "SLAIN", .06f, .67f, .94f, .95f, 16, Amber);
             _score = Label(scoreCard, "00", .04f, .12f, .96f, .68f, 42, Ivory, true);
+            var streakCard = Card(_hud, "Streak", .025f, .84f, .175f, .98f);
+            Label(streakCard, "IN A ROW", .06f, .67f, .94f, .95f, 16, Mint);
+            _streak = Label(streakCard, "0", .04f, .12f, .96f, .68f, 42, Ivory, true);
 
             var inputCard = Card(_hud, "Direction", .374f, .024f, .626f, .252f);
             _prompt = Picture(inputCard, "Direction Key", .354f, .27f, .646f, .864f, Art("DirectionKey"));
             _prompt.uvRect = new Rect(.14f, .14f, .72f, .72f);
             _status = Label(inputCard, "MATCH THE ARROW", .04f, .055f, .96f, .22f, 17, Muted, true);
+            _recoveryBar = Plate(inputCard, "Stagger Remaining", 0, 0, 1, .04f, Ember);
 
             _menu = Region(stage, "Start and Results", 0, 0, 1, 1);
             Plate(_menu, "Shade", 0, 0, 1, 1, new Color32(6, 8, 10, 85));
@@ -133,9 +139,13 @@ namespace DdaIT.DungeonRun
             monster.localScale = Vector3.one * (playing ? Mathf.Lerp(.55f, 1, arrive) : 1.22f);
             _monster.color = new Color(1, 1, 1, playing ? arrive : finished ? .48f : 1);
             _defeated.rectTransform.localScale = Vector3.one * (1 + .25f * advance);
-            _defeated.rectTransform.anchoredPosition = new Vector2(65 * advance, -64 * advance);
+            var strikeRotation = Quaternion.Euler(0, 0, -90 * (int)round.LastStrike);
+            var strikeDirection = (Vector2)(strikeRotation * Vector3.up);
+            _defeated.rectTransform.anchoredPosition = strikeDirection * (100 * advance);
+            _defeated.rectTransform.localRotation = Quaternion.Euler(0, 0, -strikeDirection.x * 20 * advance);
             _defeated.color = new Color(1, .64f, .32f, playing ? attack * attack : 0);
-            _slash.rectTransform.localRotation = Quaternion.Euler(0, 0, round.Score % 2 == 0 ? 27 : -29);
+            _slash.rectTransform.localRotation = strikeRotation * Quaternion.Euler(0, 0, 76);
+            _slash.rectTransform.anchoredPosition = strikeDirection * Mathf.Lerp(-60, 90, advance);
             _slash.rectTransform.localScale = new Vector3(Mathf.Lerp(.1f, 1, Mathf.Clamp01(hitAge / .09f)), 1, 1);
             var slashAlpha = playing ? Mathf.Pow(attack, 2.4f) : 0;
             _slash.color = new Color(1, .81f, .49f, slashAlpha);
@@ -147,7 +157,7 @@ namespace DdaIT.DungeonRun
             {
                 _eyebrow.text = finished ? "TIME'S UP" : "20-SECOND DUNGEON RUN";
                 _heading.text = finished ? round.Score.ToString("00", CultureInfo.InvariantCulture) : "CRYPT\nRUSH";
-                _description.text = finished ? "MONSTERS SLAIN" :
+                _description.text = finished ? $"MONSTERS SLAIN\nLongest streak: {round.BestStreak}" :
                     "Match the arrows to slay and advance.\nA wrong key briefly locks your attack.";
                 _buttonLabel.text = finished ? "RUN AGAIN" : "ENTER THE CRYPT";
                 return;
@@ -155,6 +165,9 @@ namespace DdaIT.DungeonRun
 
             _clock.text = (Math.Ceiling(round.Remaining * 10) / 10).ToString("00.0", CultureInfo.InvariantCulture);
             _score.text = round.Score.ToString("00", CultureInfo.InvariantCulture);
+            _streak.SetText("{0}", round.Streak);
+            _streak.color = round.Streak >= 5 ? Mint : Ivory;
+            _streak.rectTransform.localScale = Vector3.one * (1 + (locked ? 0 : .16f * attack));
             var urgent = round.Remaining <= 5;
             _clock.color = urgent ? Ember : Ivory;
             _clockBar.color = urgent ? Ember : Amber;
@@ -162,6 +175,7 @@ namespace DdaIT.DungeonRun
 
             _prompt.rectTransform.localRotation = Quaternion.Euler(0, 0, -90 * (int)round.Prompt);
             _prompt.color = locked ? new Color32(241, 122, 99, 195) : Color.white;
+            Place(_recoveryBar.rectTransform, 0, 0, (float)(round.LockRemaining / DungeonRound.LockDuration), .04f);
             var hit = hitAge < .3f;
             _status.color = locked ? Ember : hit ? Mint : Muted;
             _status.text = locked

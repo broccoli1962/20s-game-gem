@@ -18,6 +18,9 @@ namespace DdaIT.DungeonRun
         public RoundPhase Phase { get; private set; }
         public Direction Prompt { get; private set; }
         public int Score { get; private set; }
+        public int Streak { get; private set; }
+        public int BestStreak { get; private set; }
+        public Direction LastStrike { get; private set; }
         public double Remaining { get; private set; } = Duration;
         public double LockRemaining { get; private set; }
 
@@ -33,9 +36,12 @@ namespace DdaIT.DungeonRun
             _deadline = now + Duration;
             _lockedUntil = now;
             Score = 0;
+            Streak = 0;
+            BestStreak = 0;
             Remaining = Duration;
             LockRemaining = 0;
             Prompt = _nextDirection();
+            LastStrike = Prompt;
             Phase = RoundPhase.Playing;
         }
 
@@ -60,12 +66,16 @@ namespace DdaIT.DungeonRun
 
             if (direction != Prompt)
             {
+                Streak = 0;
                 _lockedUntil = now + LockDuration;
                 LockRemaining = Math.Min(Remaining, LockDuration);
                 return InputResult.Miss;
             }
 
             Score++;
+            Streak++;
+            BestStreak = Math.Max(BestStreak, Streak);
+            LastStrike = direction;
             Prompt = _nextDirection();
             return InputResult.Hit;
         }

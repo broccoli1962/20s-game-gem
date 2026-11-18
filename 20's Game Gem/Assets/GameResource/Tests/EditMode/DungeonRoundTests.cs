@@ -45,6 +45,39 @@ namespace DdaIT.Tests
         }
 
         [Test]
+        public void MissBreaksTheStreakAndBestSurvivesUntilRestart()
+        {
+            var round = new DungeonRound(() => Direction.Left);
+            round.Start(0);
+            round.Press(Direction.Left, 1);
+            round.Press(Direction.Left, 2);
+            round.Press(Direction.Right, 3);
+            round.Press(Direction.Left, 3.2);
+            Assert.That(round.Streak, Is.Zero);
+            Assert.That(round.BestStreak, Is.EqualTo(2));
+            round.Press(Direction.Left, 4);
+            round.Tick(20);
+            Assert.That(round.Streak, Is.EqualTo(1));
+            Assert.That(round.Score, Is.EqualTo(3));
+            Assert.That(round.BestStreak, Is.EqualTo(2));
+            round.Start(21);
+            Assert.That(round.Streak, Is.Zero);
+            Assert.That(round.BestStreak, Is.Zero);
+        }
+
+        [Test]
+        public void StrikeFollowsTheAcceptedArrowWhileThePromptAdvances()
+        {
+            var directions = new Queue<Direction>(new[] { Direction.Right, Direction.Down });
+            var round = new DungeonRound(directions.Dequeue);
+            round.Start(0);
+            round.Press(Direction.Right, 1);
+            round.Press(Direction.Left, 2);
+            Assert.That(round.LastStrike, Is.EqualTo(Direction.Right));
+            Assert.That(round.Prompt, Is.EqualTo(Direction.Down));
+        }
+
+        [Test]
         public void DeadlineWinsOverInputAndClearsAnActiveLock()
         {
             var round = new DungeonRound(() => Direction.Up);
