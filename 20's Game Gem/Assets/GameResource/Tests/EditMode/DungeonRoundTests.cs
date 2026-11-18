@@ -25,7 +25,7 @@ namespace DdaIT.Tests
             Assert.That(round.Score, Is.EqualTo(1));
             Assert.That(round.Prompt, Is.EqualTo(Direction.Left));
             Assert.That(round.Press(Direction.Left, 103), Is.EqualTo(InputResult.Hit));
-            Assert.That(round.Score, Is.EqualTo(2));
+            Assert.That(round.Score, Is.EqualTo(3));
             Assert.That(round.Prompt, Is.EqualTo(Direction.Down));
         }
 
@@ -58,7 +58,7 @@ namespace DdaIT.Tests
             round.Press(Direction.Left, 4);
             round.Tick(20);
             Assert.That(round.Streak, Is.EqualTo(1));
-            Assert.That(round.Score, Is.EqualTo(3));
+            Assert.That(round.Score, Is.EqualTo(4));
             Assert.That(round.BestStreak, Is.EqualTo(2));
             round.Start(21);
             Assert.That(round.Streak, Is.Zero);
@@ -92,58 +92,68 @@ namespace DdaIT.Tests
         }
 
         [Test]
-        public void QuickHitsRefreshTheWindowAndCapTheAwardWithoutCappingCombo()
+        public void FiveMatchingArrowsChargeFrenzyEvenWithPauses()
         {
             var round = new DungeonRound(() => Direction.Up);
             round.Start(0);
-            for (var i = 1; i <= 6; i++)
+            for (int i = 1; i < 5; i++)
             {
-                round.Press(Direction.Up, i * .5);
-                Assert.That(round.LastHitPoints, Is.EqualTo(System.Math.Min(i, 5)));
-                Assert.That(round.ComboRemaining, Is.EqualTo(DungeonRound.ComboWindow));
+                round.Press(Direction.Up, i * 2);
+                Assert.That(round.Charge, Is.EqualTo(i));
+                Assert.That(round.IsFrenzy, Is.False);
             }
-            Assert.That(round.Score, Is.EqualTo(20));
-            Assert.That(round.Slain, Is.EqualTo(6));
-            Assert.That(round.BestCombo, Is.EqualTo(6));
+            round.Press(Direction.Up, 10);
+            Assert.That(round.Frenzies, Is.EqualTo(1));
+            Assert.That(round.FrenzyRemaining, Is.EqualTo(3));
+            Assert.That(round.Score, Is.EqualTo(15));
+            Assert.That(round.Press(null, 11), Is.EqualTo(InputResult.Hit));
+            Assert.That(round.Press(Direction.Left, 11), Is.EqualTo(InputResult.Hit));
+            Assert.That(round.FrenzyRemaining, Is.EqualTo(2));
+            Assert.That(round.Slain, Is.EqualTo(7));
+            Assert.That(round.Score, Is.EqualTo(25));
+            Assert.That(round.Charge, Is.Zero);
         }
 
-        [TestCase(.999, 2, 3)]
-        [TestCase(1.0, 1, 2)]
-        [TestCase(1.001, 1, 2)]
-        public void OnlyAnInputBeforeExpiryContinuesTheCombo(double gap, int combo, int score)
+        [TestCase(2.999, InputResult.Hit)]
+        [TestCase(3.0, InputResult.Ignored)]
+        [TestCase(3.001, InputResult.Ignored)]
+        public void NonArrowKeysOnlyScoreBeforeFrenzyExpires(double elapsed, InputResult expected)
         {
-            var round = new DungeonRound(() => Direction.Left);
+            var round = new DungeonRound(() => Direction.Up);
             round.Start(0);
-            round.Press(Direction.Left, 1);
-            round.Press(Direction.Left, 1 + gap);
-            Assert.That(round.Combo, Is.EqualTo(combo));
-            Assert.That(round.Score, Is.EqualTo(score));
+            for (int i = 1; i <= 5; i++) round.Press(Direction.Up, i);
+            Assert.That(round.Press(null, 5 + elapsed), Is.EqualTo(expected));
+            Assert.That(round.Press(Direction.Left, 9), Is.EqualTo(InputResult.Miss));
+            Assert.That(round.Press(Direction.Up, 10), Is.EqualTo(InputResult.Hit));
+            Assert.That(round.LastHitPoints, Is.EqualTo(1));
         }
 
         [Test]
-        public void MissLockAndRoundEndCannotPreserveOrExtendBonus()
+        public void MissClearsChargeAndLockedOrNonArrowKeysCannotRebuildIt()
         {
-            var round = new DungeonRound(() => Direction.Left);
+            var round = new DungeonRound(() => Direction.Up);
             round.Start(0);
-            round.Press(Direction.Left, 1);
-            round.Press(Direction.Left, 1.1);
-            round.Press(Direction.Right, 1.2);
-            round.Press(Direction.Left, 1.3);
-            Assert.That(round.ComboRemaining, Is.Zero);
-            Assert.That(round.Slain, Is.EqualTo(2));
-            round.Press(Direction.Left, 2);
-            Assert.That(round.LastHitPoints, Is.EqualTo(1));
-            round.Tick(3);
-            Assert.That(round.Combo, Is.Zero);
-            round.Press(Direction.Left, 19.75);
-            Assert.That(round.ComboRemaining, Is.EqualTo(.25));
-            round.Press(Direction.Left, 20);
-            Assert.That(round.Score, Is.EqualTo(5));
-            Assert.That(round.BestCombo, Is.EqualTo(2));
+            round.Press(Direction.Up, 1);
+            Assert.That(round.Press(null, 1.1), Is.EqualTo(InputResult.Ignored));
+            Assert.That(round.Charge, Is.EqualTo(1));
+            round.Press(Direction.Down, 2);
+            Assert.That(round.Press(Direction.Up, 2.1), Is.EqualTo(InputResult.Ignored));
+            Assert.That(round.Charge, Is.Zero);
+        }
+
+        [Test]
+        public void RoundDeadlineCutsFrenzyShortAndRestartClearsIt()
+        {
+            var round = new DungeonRound(() => Direction.Up);
+            round.Start(0);
+            for (int i = 15; i < 20; i++) round.Press(Direction.Up, i);
+            Assert.That(round.FrenzyRemaining, Is.EqualTo(1));
+            Assert.That(round.Press(null, 20), Is.EqualTo(InputResult.Ignored));
+            Assert.That(round.IsFrenzy, Is.False);
             round.Start(21);
-            Assert.That(round.BestCombo, Is.Zero);
-            Assert.That(round.Slain, Is.Zero);
-            Assert.That(round.LastHitPoints, Is.Zero);
+            Assert.That(round.Charge, Is.Zero);
+            Assert.That(round.Frenzies, Is.Zero);
+            Assert.That(round.Press(null, 21), Is.EqualTo(InputResult.Ignored));
         }
 
         [Test]

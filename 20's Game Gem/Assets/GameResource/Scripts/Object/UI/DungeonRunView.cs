@@ -27,6 +27,7 @@ namespace DdaIT.DungeonRun
         private readonly UnityEngine.UI.Image _recoveryBar;
         private readonly UnityEngine.UI.Image _comboFill;
         private readonly TMP_Text _combo;
+        private readonly TMP_Text _anyKey;
         private readonly TMP_Text _slain;
         private readonly Texture2D[] _monsters;
         private readonly RectTransform _hud;
@@ -92,6 +93,7 @@ namespace DdaIT.DungeonRun
             var inputCard = Card(_hud, "Direction", .374f, .024f, .626f, .252f);
             _prompt = Picture(inputCard, "Direction Key", .354f, .27f, .646f, .864f, Art("DirectionKey"));
             _prompt.uvRect = new Rect(.14f, .14f, .72f, .72f);
+            _anyKey = Label(inputCard, "ANY KEY", .03f, .27f, .97f, .86f, 48, Amber, true);
             _status = Label(inputCard, "MATCH THE ARROW", .04f, .055f, .96f, .22f, 17, Muted, true);
             _recoveryBar = Plate(inputCard, "Stagger Remaining", 0, 0, 1, .04f, Ember);
 
@@ -99,7 +101,7 @@ namespace DdaIT.DungeonRun
             _combo = Label(comboCard, "COMBO", .04f, .49f, .96f, .90f, 29, Ivory, true);
             var meter = Region(comboCard, "Combo Meter", .05f, .14f, .95f, .46f);
             Plate(meter, "Track", .085f, .24f, .915f, .76f, new Color32(44, 38, 56, 255));
-            _comboFill = Plate(meter, "Time Until Combo Breaks", .085f, .24f, .915f, .76f, Mint);
+            _comboFill = Plate(meter, "Frenzy Gauge", .085f, .24f, .915f, .76f, Mint);
             var frame = Picture(meter, "Bone Frame", 0, 0, 1, 1, Art("ComboFrame"));
             frame.uvRect = Rect.MinMaxRect(.013f, .33f, .987f, .665f);
 
@@ -171,8 +173,8 @@ namespace DdaIT.DungeonRun
             {
                 _eyebrow.text = finished ? "FINAL SCORE" : "20-SECOND DUNGEON RUN";
                 _heading.text = finished ? round.Score.ToString("00", CultureInfo.InvariantCulture) : "CRYPT\nRUSH";
-                _description.text = finished ? $"{round.Slain} slain   /   Best combo {round.BestCombo}\nLongest streak: {round.BestStreak}" :
-                    "Match arrows before the combo bar empties.\nEarn up to 5 per hit. A miss staggers you.";
+                _description.text = finished ? $"{round.Slain} slain   /   Frenzies: {round.Frenzies}\nLongest streak: {round.BestStreak}" :
+                    "Match 5 arrows in a row to charge Frenzy.\nThen mash any keys for 3 seconds!";
                 _buttonLabel.text = finished ? "RUN AGAIN" : "ENTER THE CRYPT";
                 return;
             }
@@ -180,10 +182,15 @@ namespace DdaIT.DungeonRun
             _clock.text = (Math.Ceiling(round.Remaining * 10) / 10).ToString("00.0", CultureInfo.InvariantCulture);
             _score.text = round.Score.ToString("00", CultureInfo.InvariantCulture);
             _slain.SetText("{0}", round.Slain);
-            _combo.SetText("COMBO  {0}", round.Combo);
-            var fraction = (float)(round.ComboRemaining / DungeonRound.ComboWindow);
-            _combo.color = round.Combo >= DungeonRound.MaxHitPoints ? Amber : Ivory;
-            _comboFill.color = fraction < .25f ? Ember : round.Combo >= DungeonRound.MaxHitPoints ? Amber : Mint;
+            var frenzy = round.IsFrenzy;
+            var fraction = frenzy ? (float)(round.FrenzyRemaining / DungeonRound.FrenzyDuration)
+                : (float)round.Charge / DungeonRound.ChargeRequired;
+            if (frenzy)
+                _combo.SetText("FRENZY  {0:1}s", (float)(Math.Ceiling(round.FrenzyRemaining * 10) / 10));
+            else
+                _combo.SetText("CHARGE  {0}/{1}", round.Charge, DungeonRound.ChargeRequired);
+            _combo.color = frenzy ? Amber : Ivory;
+            _comboFill.color = frenzy ? (fraction < .25f ? Ember : Amber) : Mint;
             Place(_comboFill.rectTransform, .085f, .24f, .085f + .83f * fraction, .76f);
             var urgent = round.Remaining <= 5;
             _clock.color = urgent ? Ember : Ivory;
@@ -191,13 +198,15 @@ namespace DdaIT.DungeonRun
             Place(_clockBar.rectTransform, .07f, .12f, .07f + .86f * (float)(round.Remaining / DungeonRound.Duration), .17f);
 
             _prompt.rectTransform.localRotation = Quaternion.Euler(0, 0, -90 * (int)round.Prompt);
+            _prompt.enabled = !frenzy;
+            _anyKey.enabled = frenzy;
             _prompt.color = locked ? new Color32(241, 122, 99, 195) : Color.white;
             Place(_recoveryBar.rectTransform, 0, 0, (float)(round.LockRemaining / DungeonRound.LockDuration), .04f);
             var hit = hitAge < .3f;
             _status.color = locked ? Ember : hit ? Mint : Muted;
             _status.text = locked
                 ? $"STAGGERED  {(Math.Ceiling(round.LockRemaining * 10) / 10).ToString("0.0", CultureInfo.InvariantCulture)}s"
-                : hit ? $"+{round.LastHitPoints} SCORE" : "MATCH THE ARROW";
+                : hit ? $"+{round.LastHitPoints} SCORE" : frenzy ? "KEEP SLASHING" : "MATCH THE ARROW";
         }
 
         private static Texture2D Art(string name)

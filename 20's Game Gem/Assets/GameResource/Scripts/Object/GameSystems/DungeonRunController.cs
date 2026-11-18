@@ -23,38 +23,59 @@ namespace DdaIT.DungeonRun
             var now = Time.unscaledTimeAsDouble;
             var keyboard = Keyboard.current;
             var previousPhase = _round.Phase;
-            var previousCombo = _round.Combo;
+            var wasFrenzy = _round.IsFrenzy;
             _round.Tick(now);
             if (previousPhase == RoundPhase.Playing && _round.Phase == RoundPhase.Finished)
                 AudioManager.PlaySfx("CryptFinish");
-            else if (previousCombo >= 2 && _round.Combo == 0)
+            else if (wasFrenzy && !_round.IsFrenzy)
                 AudioManager.PlaySfx("CryptComboFade");
 
             if (_round.Phase == RoundPhase.Playing)
             {
-                if (ReadDirection(keyboard) is Direction direction)
+                if (_round.IsFrenzy && keyboard != null)
                 {
-                    switch (_round.Press(direction, now))
+                    foreach (var key in keyboard.allKeys)
                     {
-                        case InputResult.Hit:
-                            AudioManager.PlaySfx("CryptStrike", Mathf.Pow(2f, (_round.LastHitPoints - 1) * 2f / 12f));
-                            _hitAt = now;
-                            _missAt = double.NegativeInfinity;
-                            break;
-                        case InputResult.Miss:
-                            AudioManager.PlaySfx("CryptStagger");
-                            _missAt = now;
-                            break;
+                        if (key.wasPressedThisFrame)
+                            Strike(key.keyCode switch
+                            {
+                                Key.UpArrow => Direction.Up,
+                                Key.RightArrow => Direction.Right,
+                                Key.DownArrow => Direction.Down,
+                                Key.LeftArrow => Direction.Left,
+                                _ => (Direction?)null
+                            }, now);
                     }
                 }
+                else if (ReadDirection(keyboard) is Direction direction)
+                    Strike(direction, now);
             }
-            else if (keyboard != null &&
+            else if (previousPhase != RoundPhase.Playing && keyboard != null &&
                      (keyboard.enterKey.wasPressedThisFrame || keyboard.spaceKey.wasPressedThisFrame))
             {
                 StartRound();
             }
 
             _view.Draw(_round, (float)now, (float)(now - _hitAt), (float)(now - _missAt));
+        }
+
+        private void Strike(Direction? direction, double now)
+        {
+            var wasFrenzy = _round.IsFrenzy;
+            switch (_round.Press(direction, now))
+            {
+                case InputResult.Hit:
+                    AudioManager.PlaySfx("CryptStrike", Mathf.Pow(2f, (_round.LastHitPoints - 1) * 2f / 12f));
+                    if (!wasFrenzy && _round.IsFrenzy)
+                        AudioManager.PlaySfx("CryptEnter", 1.3f);
+                    _hitAt = now;
+                    _missAt = double.NegativeInfinity;
+                    break;
+                case InputResult.Miss:
+                    AudioManager.PlaySfx("CryptStagger");
+                    _missAt = now;
+                    break;
+            }
         }
 
         private void StartRound()
