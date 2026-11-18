@@ -20,9 +20,13 @@ namespace DdaIT.AddressableKey
         {
             private static readonly Dictionary<string, string> Keys = new Dictionary<string, string>()
             {
+                { "CryptCharge", "Assets/GameResource/Audio/DungeonRun/CryptCharge.wav" },
                 { "CryptComboFade", "Assets/GameResource/Audio/DungeonRun/CryptComboFade.wav" },
                 { "CryptEnter", "Assets/GameResource/Audio/DungeonRun/CryptEnter.wav" },
                 { "CryptFinish", "Assets/GameResource/Audio/DungeonRun/CryptFinish.wav" },
+                { "CryptFrenzy", "Assets/GameResource/Audio/DungeonRun/CryptFrenzy.wav" },
+                { "CryptFrenzyStrike", "Assets/GameResource/Audio/DungeonRun/CryptFrenzyStrike.wav" },
+                { "CryptMachinery", "Assets/GameResource/Audio/DungeonRun/CryptMachinery.wav" },
                 { "CryptStagger", "Assets/GameResource/Audio/DungeonRun/CryptStagger.wav" },
                 { "CryptStrike", "Assets/GameResource/Audio/DungeonRun/CryptStrike.wav" },
                 { "AudioMixer", "Assets/GameResource/Audio/Mixer/AudioMixer.mixer" },

@@ -65,9 +65,20 @@ namespace DdaIT.DungeonRun
             switch (_round.Press(direction, now))
             {
                 case InputResult.Hit:
-                    AudioManager.PlaySfx("CryptStrike", Mathf.Pow(2f, (_round.LastHitPoints - 1) * 2f / 12f));
-                    if (!wasFrenzy && _round.IsFrenzy)
-                        AudioManager.PlaySfx("CryptEnter", 1.3f);
+                    if (wasFrenzy)
+                    {
+                        // 동시에 누른 키는 각각 채점하되 같은 타격음이 겹쳐 커지지 않게 한다.
+                        if (_hitAt != now)
+                            AudioManager.PlaySfx("CryptFrenzyStrike");
+                    }
+                    else
+                    {
+                        AudioManager.PlaySfx("CryptStrike");
+                        if (_round.IsFrenzy)
+                            AudioManager.PlaySfx("CryptFrenzy");
+                        else
+                            AudioManager.PlaySfx("CryptCharge", Mathf.Pow(2f, (_round.Charge - 1) * 3f / 12f));
+                    }
                     _hitAt = now;
                     _missAt = double.NegativeInfinity;
                     break;
@@ -82,6 +93,9 @@ namespace DdaIT.DungeonRun
         {
             if (_round.Phase == RoundPhase.Playing)
                 return;
+
+            if (_round.Phase == RoundPhase.Ready)
+                AudioManager.PlayBgm("CryptMachinery");
 
             _previousDirection = -1;
             _hitAt = double.NegativeInfinity;

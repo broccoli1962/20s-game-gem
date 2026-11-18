@@ -20,7 +20,10 @@ namespace DdaIT.Object.Management
         public override UniTask ExitAsync()
         {
             if (_run != null)
+            {
+                AudioManager.StopBgm();
                 UnityEngine.Object.Destroy(_run);
+            }
             return UniTask.CompletedTask;
         }
     }
