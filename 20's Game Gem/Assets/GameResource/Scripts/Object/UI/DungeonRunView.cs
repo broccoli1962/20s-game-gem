@@ -68,8 +68,8 @@ namespace DdaIT.DungeonRun
             var monsterArt = Art("Revenant");
             _corridor = Picture(stage, "Catacomb", 0, 0, 1, 1, corridorArt);
             _nextCorridor = Picture(stage, "Next Passage", 0, 0, 1, 1, corridorArt);
-            _monster = Picture(stage, "Revenant", .32f, .14f, .68f, .74f, monsterArt);
-            _defeated = Picture(stage, "Defeated Revenant", .32f, .14f, .68f, .74f, monsterArt);
+            _monster = Picture(stage, "Revenant", .367f, .275f, .633f, .808f, monsterArt);
+            _defeated = Picture(stage, "Defeated Revenant", .367f, .275f, .633f, .808f, monsterArt);
             _slash = Plate(stage, "Strike", .31f, .456f, .69f, .468f, Color.clear);
             _flash = Plate(stage, "Impact", 0, 0, 1, 1, Color.clear);
 
@@ -135,7 +135,8 @@ namespace DdaIT.DungeonRun
 
             var monster = _monster.rectTransform;
             var arrive = Mathf.SmoothStep(0, 1, Mathf.Clamp01((hitAge - .055f) / .16f));
-            monster.anchoredPosition = new Vector2(playing ? 0 : 270, Mathf.Sin(now * 4) * 3);
+            var idleBob = Mathf.Sin(now * 4) * 3;
+            monster.anchoredPosition = playing ? new Vector2(0, idleBob) : new Vector2(270, idleBob - 70);
             monster.localScale = Vector3.one * (playing ? Mathf.Lerp(.55f, 1, arrive) : 1.22f);
             _monster.color = new Color(1, 1, 1, playing ? arrive : finished ? .48f : 1);
             _defeated.rectTransform.localScale = Vector3.one * (1 + .25f * advance);
