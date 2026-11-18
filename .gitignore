@@ -1,0 +1,39 @@
+# Unity generated and user-specific directories
+/20's Game Gem/[Ll]ibrary/
+/20's Game Gem/[Tt]emp/
+/20's Game Gem/[Oo]bj/
+/20's Game Gem/[Bb]uild/
+/20's Game Gem/[Bb]uilds/
+/20's Game Gem/[Ll]ogs/
+/20's Game Gem/[Uu]ser[Ss]ettings/
+/20's Game Gem/[Mm]emoryCaptures/
+/20's Game Gem/[Rr]ecordings/
+/20's Game Gem/Assets/StreamingAssets/aa/
+/20's Game Gem/Assets/StreamingAssets/aa.meta
+/20's Game Gem/Assets/AddressableAssetsData/*/*.bin*
+
+# Generated solutions and local IDE settings
+/20's Game Gem/*.csproj
+/20's Game Gem/*.sln
+/20's Game Gem/*.slnx
+/20's Game Gem/*.unityproj
+/20's Game Gem/*.suo
+/20's Game Gem/*.user
+/20's Game Gem/.vs/
+/20's Game Gem/.vscode/
+/20's Game Gem/.idea/
+*.DotSettings.user
+
+# Build outputs and temporary files
+*.apk
+*.aab
+*.app
+*.unitypackage
+crashlytics-build.properties
+sysinfo.txt
+.DS_Store
+Thumbs.db
+
+# GSSL local request and result files
+/20's Game Gem/.cursor/gssl-pending.json
+/20's Game Gem/.cursor/gssl-result.json
