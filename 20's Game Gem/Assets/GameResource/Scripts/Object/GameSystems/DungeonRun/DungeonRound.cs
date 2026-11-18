@@ -13,17 +13,20 @@ namespace DdaIT.DungeonRun
         public const double FrenzyDuration = 3.0;
         public const int ChargeRequired = 5;
         public const int MaxHitPoints = 5;
+        public const double ChargeGrace = 1.0;
+        public const double ChargeLostPerSecond = 1.0;
 
         private readonly Func<Direction> _nextDirection;
         private double _deadline;
         private double _lockedUntil;
         private double _frenzyUntil;
+        private double _decayFrom;
 
         public RoundPhase Phase { get; private set; }
         public Direction Prompt { get; private set; }
         public int Score { get; private set; }
         public int Slain { get; private set; }
-        public int Charge { get; private set; }
+        public double Charge { get; private set; }
         public int Frenzies { get; private set; }
         public int LastHitPoints { get; private set; }
         public double FrenzyRemaining { get; private set; }
@@ -46,6 +49,7 @@ namespace DdaIT.DungeonRun
             _deadline = now + Duration;
             _lockedUntil = now;
             Charge = 0;
+            _decayFrom = now;
             _frenzyUntil = now;
             FrenzyRemaining = 0;
             Frenzies = 0;
@@ -70,6 +74,12 @@ namespace DdaIT.DungeonRun
             Remaining = Math.Max(0, _deadline - now);
             LockRemaining = Math.Min(Remaining, Math.Max(0, _lockedUntil - now));
             FrenzyRemaining = Math.Min(Remaining, Math.Max(0, _frenzyUntil - now));
+            var roundTime = Math.Min(now, _deadline);
+            if (Charge > 0 && roundTime > _decayFrom)
+            {
+                Charge = Math.Max(0, Charge - (roundTime - _decayFrom) * ChargeLostPerSecond);
+                _decayFrom = roundTime;
+            }
             if (Remaining == 0)
                 Phase = RoundPhase.Finished;
         }
@@ -101,8 +111,9 @@ namespace DdaIT.DungeonRun
             else
             {
                 Charge++;
-                LastHitPoints = Math.Min(Charge, MaxHitPoints);
-                if (Charge == ChargeRequired)
+                _decayFrom = now + ChargeGrace;
+                LastHitPoints = Math.Min((int)Charge, MaxHitPoints);
+                if (Charge >= ChargeRequired)
                 {
                     Charge = 0;
                     Frenzies++;

@@ -8,6 +8,11 @@ namespace DdaIT.Object.Management
     {
         private GameObject _run;
 
+        /// <summary>Prepares the dungeon audio before the start button becomes available.</summary>
+        public override UniTask PreloadAsync() => AudioManager.PreloadClipsAsync(
+            "CryptEnter", "CryptMachinery", "CryptStrike", "CryptCharge", "CryptStagger",
+            "CryptFrenzy", "CryptFrenzyStrike", "CryptComboFade", "CryptFinish");
+
         /// <summary>Creates the round controller and its scene-owned presentation.</summary>
         public override UniTask EnterAsync()
         {

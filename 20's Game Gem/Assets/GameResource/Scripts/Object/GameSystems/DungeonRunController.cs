@@ -12,10 +12,18 @@ namespace DdaIT.DungeonRun
         private double _hitAt = double.NegativeInfinity;
         private double _missAt = double.NegativeInfinity;
 
+#if UNITY_WEBGL && !UNITY_EDITOR
+        [System.Runtime.InteropServices.DllImport("__Internal")]
+        private static extern void CryptRushInstallAudioUnlock();
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void EnableBrowserAudio() => CryptRushInstallAudioUnlock();
+#endif
+
         private void Awake()
         {
             _round = new DungeonRound(NextDirection);
-            _view = new DungeonRunView(transform, StartRound);
+            _view = new DungeonRunView(transform, StartRound, () => AudioManager.PlaySfx("CryptEnter"));
         }
 
         private void Update()
@@ -77,7 +85,7 @@ namespace DdaIT.DungeonRun
                         if (_round.IsFrenzy)
                             AudioManager.PlaySfx("CryptFrenzy");
                         else
-                            AudioManager.PlaySfx("CryptCharge", Mathf.Pow(2f, (_round.Charge - 1) * 3f / 12f));
+                            AudioManager.PlaySfx("CryptCharge", Mathf.Pow(2f, (_round.LastHitPoints - 1) * 3f / 12f));
                     }
                     _hitAt = now;
                     _missAt = double.NegativeInfinity;

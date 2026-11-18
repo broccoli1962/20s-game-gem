@@ -41,7 +41,7 @@ namespace DdaIT.DungeonRun
         private readonly TMP_Text _buttonLabel;
         private float _depth;
 
-        internal DungeonRunView(Transform owner, Action start)
+        internal DungeonRunView(Transform owner, Action start, Action testSound)
         {
             var canvas = new GameObject("Dungeon Run Canvas", typeof(RectTransform), typeof(Canvas),
                 typeof(UnityEngine.UI.CanvasScaler), typeof(UnityEngine.UI.GraphicRaycaster));
@@ -122,7 +122,14 @@ namespace DdaIT.DungeonRun
             button.onClick.AddListener(() => start());
             _buttonLabel = Label(buttonArt.rectTransform, "ENTER THE CRYPT", 0, 0, 1, 1, 23,
                 new Color32(31, 20, 13, 255), true);
-            Label(menuCard, "ENTER / SPACE", .10f, .025f, .90f, .10f, 15, Muted);
+            Label(menuCard, "ENTER / SPACE", .12f, .021f, .51f, .10f, 15, Muted);
+            var soundArt = Plate(menuCard, "Test Sound", .53f, .018f, .81f, .102f, new Color32(57, 47, 39, 255));
+            soundArt.raycastTarget = true;
+            var soundButton = soundArt.gameObject.AddComponent<UnityEngine.UI.Button>();
+            soundButton.targetGraphic = soundArt;
+            soundButton.navigation = new UnityEngine.UI.Navigation { mode = UnityEngine.UI.Navigation.Mode.None };
+            soundButton.onClick.AddListener(() => testSound());
+            Label(soundArt.rectTransform, "TEST SOUND", 0, 0, 1, 1, 15, Ivory, true);
         }
 
         internal void Draw(DungeonRound round, float now, float hitAge, float missAge)
@@ -174,7 +181,7 @@ namespace DdaIT.DungeonRun
                 _eyebrow.text = finished ? "FINAL SCORE" : "20-SECOND DUNGEON RUN";
                 _heading.text = finished ? round.Score.ToString("00", CultureInfo.InvariantCulture) : "CRYPT\nRUSH";
                 _description.text = finished ? $"{round.Slain} slain   /   Frenzies: {round.Frenzies}\nLongest streak: {round.BestStreak}" :
-                    "Match 5 arrows in a row to charge Frenzy.\nThen mash any keys for 3 seconds!";
+                    "Match arrows quickly. Idle charge drains.\nFill the gauge for 3 seconds of any-key attacks!";
                 _buttonLabel.text = finished ? "RUN AGAIN" : "ENTER THE CRYPT";
                 return;
             }
@@ -188,7 +195,7 @@ namespace DdaIT.DungeonRun
             if (frenzy)
                 _combo.SetText("FRENZY  {0:1}s", (float)(Math.Ceiling(round.FrenzyRemaining * 10) / 10));
             else
-                _combo.SetText("CHARGE  {0}/{1}", round.Charge, DungeonRound.ChargeRequired);
+                _combo.SetText("CHARGE  {0}%", Mathf.FloorToInt(fraction * 100));
             _combo.color = frenzy ? Amber : Ivory;
             _comboFill.color = frenzy ? (fraction < .25f ? Ember : Amber) : Mint;
             Place(_comboFill.rectTransform, .085f, .24f, .085f + .83f * fraction, .76f);

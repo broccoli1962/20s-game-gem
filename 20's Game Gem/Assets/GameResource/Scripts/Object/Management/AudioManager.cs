@@ -525,6 +525,15 @@ namespace DdaIT.Object.Management
         /// </summary>
         public static void PlaySfx(string key, float pitch = 1f) => Instance.PlaySfx_InternalAsync(key, pitch).Forget();
 
+        /// <summary>Loads the requested clips before their first gameplay cue.</summary>
+        public static async UniTask PreloadClipsAsync(params string[] keys)
+        {
+            var manager = Instance;
+            await manager.GetOrCreateAudioSourcePoolAsync();
+            foreach (var key in keys)
+                await manager.GetOrLoadClipAsync(key);
+        }
+
         /// <summary>
         /// 딜레이 후 사운드 효과음 재생
         /// </summary>
