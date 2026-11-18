@@ -1,0 +1,6 @@
+{
+    "name": "DdaIT.DungeonRun.Tests",
+    "references": ["DdaIT.DungeonRun"],
+    "includePlatforms": ["Editor"],
+    "optionalUnityReferences": ["TestAssemblies"]
+}
