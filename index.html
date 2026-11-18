@@ -22,7 +22,7 @@
     <span>Loading Crypt Rush</span>
     <progress max="1" value="0" aria-label="Game loading progress"></progress>
   </div>
-  <script src="Build/CryptRushMechanicalWeb.loader.js"></script>
+  <script src="Build/CryptRushDecayWeb.loader.js"></script>
   <script>
     const canvas = document.getElementById("unity-canvas");
     const loading = document.getElementById("loading");
@@ -30,9 +30,9 @@
     canvas.addEventListener("pointerdown", () => canvas.focus({preventScroll: true}));
 
     createUnityInstance(canvas, {
-      dataUrl: "Build/CryptRushMechanicalWeb.data",
-      frameworkUrl: "Build/CryptRushMechanicalWeb.framework.js",
-      codeUrl: "Build/CryptRushMechanicalWeb.wasm",
+      dataUrl: "Build/CryptRushDecayWeb.data",
+      frameworkUrl: "Build/CryptRushDecayWeb.framework.js",
+      codeUrl: "Build/CryptRushDecayWeb.wasm",
       streamingAssetsUrl: "StreamingAssets",
       companyName: "DdaIT",
       productName: "20's Game Gem",
