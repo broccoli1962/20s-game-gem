@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using DdaIT.Object.Management;
 
 namespace DdaIT.DungeonRun
 {
@@ -21,7 +22,13 @@ namespace DdaIT.DungeonRun
         {
             var now = Time.unscaledTimeAsDouble;
             var keyboard = Keyboard.current;
+            var previousPhase = _round.Phase;
+            var previousCombo = _round.Combo;
             _round.Tick(now);
+            if (previousPhase == RoundPhase.Playing && _round.Phase == RoundPhase.Finished)
+                AudioManager.PlaySfx("CryptFinish");
+            else if (previousCombo >= 2 && _round.Combo == 0)
+                AudioManager.PlaySfx("CryptComboFade");
 
             if (_round.Phase == RoundPhase.Playing)
             {
@@ -30,10 +37,12 @@ namespace DdaIT.DungeonRun
                     switch (_round.Press(direction, now))
                     {
                         case InputResult.Hit:
+                            AudioManager.PlaySfx("CryptStrike", Mathf.Pow(2f, (_round.LastHitPoints - 1) * 2f / 12f));
                             _hitAt = now;
                             _missAt = double.NegativeInfinity;
                             break;
                         case InputResult.Miss:
+                            AudioManager.PlaySfx("CryptStagger");
                             _missAt = now;
                             break;
                     }
@@ -57,6 +66,7 @@ namespace DdaIT.DungeonRun
             _hitAt = double.NegativeInfinity;
             _missAt = double.NegativeInfinity;
             _round.Start(Time.unscaledTimeAsDouble);
+            AudioManager.PlaySfx("CryptEnter");
         }
 
         private Direction NextDirection()

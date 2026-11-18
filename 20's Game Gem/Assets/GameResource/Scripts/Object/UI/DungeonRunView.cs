@@ -25,7 +25,10 @@ namespace DdaIT.DungeonRun
         private readonly UnityEngine.UI.Image _flash;
         private readonly UnityEngine.UI.Image _clockBar;
         private readonly UnityEngine.UI.Image _recoveryBar;
-        private readonly TMP_Text _streak;
+        private readonly UnityEngine.UI.Image _comboFill;
+        private readonly TMP_Text _combo;
+        private readonly TMP_Text _slain;
+        private readonly Texture2D[] _monsters;
         private readonly RectTransform _hud;
         private readonly RectTransform _menu;
         private readonly TMP_Text _clock;
@@ -65,11 +68,11 @@ namespace DdaIT.DungeonRun
             stage.gameObject.AddComponent<UnityEngine.UI.RectMask2D>();
 
             var corridorArt = Art("Catacomb");
-            var monsterArt = Art("Revenant");
+            _monsters = new[] { Art("Revenant"), Art("Bat"), Art("Mimic") };
             _corridor = Picture(stage, "Catacomb", 0, 0, 1, 1, corridorArt);
             _nextCorridor = Picture(stage, "Next Passage", 0, 0, 1, 1, corridorArt);
-            _monster = Picture(stage, "Revenant", .367f, .275f, .633f, .808f, monsterArt);
-            _defeated = Picture(stage, "Defeated Revenant", .367f, .275f, .633f, .808f, monsterArt);
+            _monster = Picture(stage, "Monster", .367f, .275f, .633f, .808f, _monsters[0]);
+            _defeated = Picture(stage, "Defeated Monster", .367f, .275f, .633f, .808f, _monsters[0]);
             _slash = Plate(stage, "Strike", .31f, .456f, .69f, .468f, Color.clear);
             _flash = Plate(stage, "Impact", 0, 0, 1, 1, Color.clear);
 
@@ -80,17 +83,25 @@ namespace DdaIT.DungeonRun
             Plate(timer, "Timer Track", .07f, .12f, .93f, .17f, new Color32(65, 52, 43, 255));
             _clockBar = Plate(timer, "Time Remaining", .07f, .12f, .93f, .17f, Amber);
             var scoreCard = Card(_hud, "Score", .825f, .84f, .975f, .98f);
-            Label(scoreCard, "SLAIN", .06f, .67f, .94f, .95f, 16, Amber);
+            Label(scoreCard, "SCORE", .06f, .67f, .94f, .95f, 16, Amber);
             _score = Label(scoreCard, "00", .04f, .12f, .96f, .68f, 42, Ivory, true);
-            var streakCard = Card(_hud, "Streak", .025f, .84f, .175f, .98f);
-            Label(streakCard, "IN A ROW", .06f, .67f, .94f, .95f, 16, Mint);
-            _streak = Label(streakCard, "0", .04f, .12f, .96f, .68f, 42, Ivory, true);
+            var killCard = Card(_hud, "Kills", .025f, .84f, .175f, .98f);
+            Label(killCard, "SLAIN", .06f, .67f, .94f, .95f, 16, Amber);
+            _slain = Label(killCard, "0", .04f, .12f, .96f, .68f, 42, Ivory, true);
 
             var inputCard = Card(_hud, "Direction", .374f, .024f, .626f, .252f);
             _prompt = Picture(inputCard, "Direction Key", .354f, .27f, .646f, .864f, Art("DirectionKey"));
             _prompt.uvRect = new Rect(.14f, .14f, .72f, .72f);
             _status = Label(inputCard, "MATCH THE ARROW", .04f, .055f, .96f, .22f, 17, Muted, true);
             _recoveryBar = Plate(inputCard, "Stagger Remaining", 0, 0, 1, .04f, Ember);
+
+            var comboCard = Card(_hud, "Combo", .644f, .055f, .918f, .218f);
+            _combo = Label(comboCard, "COMBO", .04f, .49f, .96f, .90f, 29, Ivory, true);
+            var meter = Region(comboCard, "Combo Meter", .05f, .14f, .95f, .46f);
+            Plate(meter, "Track", .085f, .24f, .915f, .76f, new Color32(44, 38, 56, 255));
+            _comboFill = Plate(meter, "Time Until Combo Breaks", .085f, .24f, .915f, .76f, Mint);
+            var frame = Picture(meter, "Bone Frame", 0, 0, 1, 1, Art("ComboFrame"));
+            frame.uvRect = Rect.MinMaxRect(.013f, .33f, .987f, .665f);
 
             _menu = Region(stage, "Start and Results", 0, 0, 1, 1);
             Plate(_menu, "Shade", 0, 0, 1, 1, new Color32(6, 8, 10, 85));
@@ -123,9 +134,9 @@ namespace DdaIT.DungeonRun
             var advance = Mathf.Clamp01(hitAge / .28f);
             var attack = 1 - advance;
             var stagger = 1 - Mathf.Clamp01(missAge / .23f);
-            _depth = round.Score < _depth
-                ? round.Score
-                : Mathf.MoveTowards(_depth, round.Score, Time.unscaledDeltaTime * 8);
+            _depth = round.Slain < _depth
+                ? round.Slain
+                : Mathf.MoveTowards(_depth, round.Slain, Time.unscaledDeltaTime * 8);
             var passageDepth = Mathf.Repeat(_depth, 4);
             var sway = Mathf.Sin(stagger * 31) * .012f * stagger;
             _corridor.uvRect = CorridorCrop(1.045f + passageDepth * .092f, sway);
@@ -134,6 +145,8 @@ namespace DdaIT.DungeonRun
                 Mathf.InverseLerp(3.35f, 4, passageDepth)));
 
             var monster = _monster.rectTransform;
+            _monster.texture = _monsters[round.Slain % _monsters.Length];
+            _defeated.texture = _monsters[Math.Max(0, round.Slain - 1) % _monsters.Length];
             var arrive = Mathf.SmoothStep(0, 1, Mathf.Clamp01((hitAge - .055f) / .16f));
             var idleBob = Mathf.Sin(now * 4) * 3;
             monster.anchoredPosition = playing ? new Vector2(0, idleBob) : new Vector2(270, idleBob - 70);
@@ -156,19 +169,22 @@ namespace DdaIT.DungeonRun
 
             if (!playing)
             {
-                _eyebrow.text = finished ? "TIME'S UP" : "20-SECOND DUNGEON RUN";
+                _eyebrow.text = finished ? "FINAL SCORE" : "20-SECOND DUNGEON RUN";
                 _heading.text = finished ? round.Score.ToString("00", CultureInfo.InvariantCulture) : "CRYPT\nRUSH";
-                _description.text = finished ? $"MONSTERS SLAIN\nLongest streak: {round.BestStreak}" :
-                    "Match the arrows to slay and advance.\nA wrong key briefly locks your attack.";
+                _description.text = finished ? $"{round.Slain} slain   /   Best combo {round.BestCombo}\nLongest streak: {round.BestStreak}" :
+                    "Match arrows before the combo bar empties.\nEarn up to 5 per hit. A miss staggers you.";
                 _buttonLabel.text = finished ? "RUN AGAIN" : "ENTER THE CRYPT";
                 return;
             }
 
             _clock.text = (Math.Ceiling(round.Remaining * 10) / 10).ToString("00.0", CultureInfo.InvariantCulture);
             _score.text = round.Score.ToString("00", CultureInfo.InvariantCulture);
-            _streak.SetText("{0}", round.Streak);
-            _streak.color = round.Streak >= 5 ? Mint : Ivory;
-            _streak.rectTransform.localScale = Vector3.one * (1 + (locked ? 0 : .16f * attack));
+            _slain.SetText("{0}", round.Slain);
+            _combo.SetText("COMBO  {0}", round.Combo);
+            var fraction = (float)(round.ComboRemaining / DungeonRound.ComboWindow);
+            _combo.color = round.Combo >= DungeonRound.MaxHitPoints ? Amber : Ivory;
+            _comboFill.color = fraction < .25f ? Ember : round.Combo >= DungeonRound.MaxHitPoints ? Amber : Mint;
+            Place(_comboFill.rectTransform, .085f, .24f, .085f + .83f * fraction, .76f);
             var urgent = round.Remaining <= 5;
             _clock.color = urgent ? Ember : Ivory;
             _clockBar.color = urgent ? Ember : Amber;
@@ -181,7 +197,7 @@ namespace DdaIT.DungeonRun
             _status.color = locked ? Ember : hit ? Mint : Muted;
             _status.text = locked
                 ? $"STAGGERED  {(Math.Ceiling(round.LockRemaining * 10) / 10).ToString("0.0", CultureInfo.InvariantCulture)}s"
-                : hit ? "+1 SLAIN" : "MATCH THE ARROW";
+                : hit ? $"+{round.LastHitPoints} SCORE" : "MATCH THE ARROW";
         }
 
         private static Texture2D Art(string name)

@@ -92,6 +92,61 @@ namespace DdaIT.Tests
         }
 
         [Test]
+        public void QuickHitsRefreshTheWindowAndCapTheAwardWithoutCappingCombo()
+        {
+            var round = new DungeonRound(() => Direction.Up);
+            round.Start(0);
+            for (var i = 1; i <= 6; i++)
+            {
+                round.Press(Direction.Up, i * .5);
+                Assert.That(round.LastHitPoints, Is.EqualTo(System.Math.Min(i, 5)));
+                Assert.That(round.ComboRemaining, Is.EqualTo(DungeonRound.ComboWindow));
+            }
+            Assert.That(round.Score, Is.EqualTo(20));
+            Assert.That(round.Slain, Is.EqualTo(6));
+            Assert.That(round.BestCombo, Is.EqualTo(6));
+        }
+
+        [TestCase(.999, 2, 3)]
+        [TestCase(1.0, 1, 2)]
+        [TestCase(1.001, 1, 2)]
+        public void OnlyAnInputBeforeExpiryContinuesTheCombo(double gap, int combo, int score)
+        {
+            var round = new DungeonRound(() => Direction.Left);
+            round.Start(0);
+            round.Press(Direction.Left, 1);
+            round.Press(Direction.Left, 1 + gap);
+            Assert.That(round.Combo, Is.EqualTo(combo));
+            Assert.That(round.Score, Is.EqualTo(score));
+        }
+
+        [Test]
+        public void MissLockAndRoundEndCannotPreserveOrExtendBonus()
+        {
+            var round = new DungeonRound(() => Direction.Left);
+            round.Start(0);
+            round.Press(Direction.Left, 1);
+            round.Press(Direction.Left, 1.1);
+            round.Press(Direction.Right, 1.2);
+            round.Press(Direction.Left, 1.3);
+            Assert.That(round.ComboRemaining, Is.Zero);
+            Assert.That(round.Slain, Is.EqualTo(2));
+            round.Press(Direction.Left, 2);
+            Assert.That(round.LastHitPoints, Is.EqualTo(1));
+            round.Tick(3);
+            Assert.That(round.Combo, Is.Zero);
+            round.Press(Direction.Left, 19.75);
+            Assert.That(round.ComboRemaining, Is.EqualTo(.25));
+            round.Press(Direction.Left, 20);
+            Assert.That(round.Score, Is.EqualTo(5));
+            Assert.That(round.BestCombo, Is.EqualTo(2));
+            round.Start(21);
+            Assert.That(round.BestCombo, Is.Zero);
+            Assert.That(round.Slain, Is.Zero);
+            Assert.That(round.LastHitPoints, Is.Zero);
+        }
+
+        [Test]
         public void TickFinishesWithoutInputAndRestartResetsScoreAndClock()
         {
             var round = new DungeonRound(() => Direction.Right);

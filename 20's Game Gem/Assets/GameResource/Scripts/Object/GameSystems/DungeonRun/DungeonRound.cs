@@ -10,14 +10,22 @@ namespace DdaIT.DungeonRun
     {
         public const double Duration = 20.0;
         public const double LockDuration = 0.65;
+        public const double ComboWindow = 1.0;
+        public const int MaxHitPoints = 5;
 
         private readonly Func<Direction> _nextDirection;
         private double _deadline;
         private double _lockedUntil;
+        private double _comboUntil;
 
         public RoundPhase Phase { get; private set; }
         public Direction Prompt { get; private set; }
         public int Score { get; private set; }
+        public int Slain { get; private set; }
+        public int Combo { get; private set; }
+        public int BestCombo { get; private set; }
+        public int LastHitPoints { get; private set; }
+        public double ComboRemaining { get; private set; }
         public int Streak { get; private set; }
         public int BestStreak { get; private set; }
         public Direction LastStrike { get; private set; }
@@ -35,6 +43,10 @@ namespace DdaIT.DungeonRun
         {
             _deadline = now + Duration;
             _lockedUntil = now;
+            ClearCombo();
+            BestCombo = 0;
+            LastHitPoints = 0;
+            Slain = 0;
             Score = 0;
             Streak = 0;
             BestStreak = 0;
@@ -53,6 +65,9 @@ namespace DdaIT.DungeonRun
 
             Remaining = Math.Max(0, _deadline - now);
             LockRemaining = Math.Min(Remaining, Math.Max(0, _lockedUntil - now));
+            ComboRemaining = Math.Max(0, _comboUntil - now);
+            if (ComboRemaining == 0 || Remaining == 0)
+                ClearCombo();
             if (Remaining == 0)
                 Phase = RoundPhase.Finished;
         }
@@ -67,17 +82,31 @@ namespace DdaIT.DungeonRun
             if (direction != Prompt)
             {
                 Streak = 0;
+                ClearCombo();
                 _lockedUntil = now + LockDuration;
                 LockRemaining = Math.Min(Remaining, LockDuration);
                 return InputResult.Miss;
             }
 
-            Score++;
+            Slain++;
+            Combo++;
+            BestCombo = Math.Max(BestCombo, Combo);
+            LastHitPoints = Math.Min(Combo, MaxHitPoints);
+            Score += LastHitPoints;
+            _comboUntil = Math.Min(_deadline, now + ComboWindow);
+            ComboRemaining = _comboUntil - now;
             Streak++;
             BestStreak = Math.Max(BestStreak, Streak);
             LastStrike = direction;
             Prompt = _nextDirection();
             return InputResult.Hit;
+        }
+
+        private void ClearCombo()
+        {
+            Combo = 0;
+            ComboRemaining = 0;
+            _comboUntil = double.NegativeInfinity;
         }
     }
 }
