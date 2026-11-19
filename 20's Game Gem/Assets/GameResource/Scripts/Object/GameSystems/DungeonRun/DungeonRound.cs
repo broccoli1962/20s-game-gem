@@ -13,7 +13,6 @@ namespace DdaIT.DungeonRun
         public const double FrenzyDuration = 3.0;
         public const int ChargeRequired = 5;
         public const int MaxHitPoints = 5;
-        public const double ChargeGrace = 1.0;
         public const double ChargeLostPerSecond = 1.0;
 
         private readonly Func<Direction> _nextDirection;
@@ -111,7 +110,7 @@ namespace DdaIT.DungeonRun
             else
             {
                 Charge++;
-                _decayFrom = now + ChargeGrace;
+                _decayFrom = now;
                 LastHitPoints = Math.Min((int)Charge, MaxHitPoints);
                 if (Charge >= ChargeRequired)
                 {

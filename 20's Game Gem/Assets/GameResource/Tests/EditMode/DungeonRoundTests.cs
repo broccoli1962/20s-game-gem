@@ -25,7 +25,7 @@ namespace DdaIT.Tests
             Assert.That(round.Score, Is.EqualTo(1));
             Assert.That(round.Prompt, Is.EqualTo(Direction.Left));
             Assert.That(round.Press(Direction.Left, 102), Is.EqualTo(InputResult.Hit));
-            Assert.That(round.Score, Is.EqualTo(3));
+            Assert.That(round.Score, Is.EqualTo(2));
             Assert.That(round.Prompt, Is.EqualTo(Direction.Down));
         }
 
@@ -58,7 +58,7 @@ namespace DdaIT.Tests
             round.Press(Direction.Left, 4);
             round.Tick(20);
             Assert.That(round.Streak, Is.EqualTo(1));
-            Assert.That(round.Score, Is.EqualTo(4));
+            Assert.That(round.Score, Is.EqualTo(3));
             Assert.That(round.BestStreak, Is.EqualTo(2));
             round.Start(21);
             Assert.That(round.Streak, Is.Zero);
@@ -92,61 +92,59 @@ namespace DdaIT.Tests
         }
 
         [Test]
-        public void FiveTimelyArrowsChargeFrenzy()
+        public void RapidHitsBuildFrenzyAgainstContinuousDecay()
         {
             var round = new DungeonRound(() => Direction.Up);
             round.Start(0);
-            for (int i = 1; i < 5; i++)
+            for (int i = 0; i < 5; i++)
             {
-                round.Press(Direction.Up, i);
-                Assert.That(round.Charge, Is.EqualTo(i));
+                round.Press(Direction.Up, 1 + i * 0.125);
+                Assert.That(round.Charge, Is.EqualTo(1 + i * 0.875));
                 Assert.That(round.IsFrenzy, Is.False);
             }
-            round.Press(Direction.Up, 5);
+            round.Press(Direction.Up, 1.625);
             Assert.That(round.Frenzies, Is.EqualTo(1));
             Assert.That(round.FrenzyRemaining, Is.EqualTo(3));
-            Assert.That(round.Score, Is.EqualTo(15));
-            Assert.That(round.Press(null, 6), Is.EqualTo(InputResult.Hit));
-            Assert.That(round.Press(Direction.Left, 6), Is.EqualTo(InputResult.Hit));
+            Assert.That(round.Score, Is.EqualTo(16));
+            Assert.That(round.Press(null, 2.625), Is.EqualTo(InputResult.Hit));
+            Assert.That(round.Press(Direction.Left, 2.625), Is.EqualTo(InputResult.Hit));
             Assert.That(round.FrenzyRemaining, Is.EqualTo(2));
-            Assert.That(round.Slain, Is.EqualTo(7));
-            Assert.That(round.Score, Is.EqualTo(25));
+            Assert.That(round.Slain, Is.EqualTo(8));
+            Assert.That(round.Score, Is.EqualTo(26));
             Assert.That(round.Charge, Is.Zero);
         }
 
         [Test]
-        public void IdleChargeDrainsGraduallyAndIgnoredKeysDoNotRefreshIt()
+        public void ChargeDrainsOnTheNextFrameAndIgnoredKeysDoNotRefreshIt()
         {
             var round = new DungeonRound(() => Direction.Up);
             round.Start(0);
             round.Press(Direction.Up, 1);
-            round.Press(Direction.Up, 1.5);
-            round.Tick(2.5);
-            Assert.That(round.Charge, Is.EqualTo(2));
-            Assert.That(round.Press(null, 2.75), Is.EqualTo(InputResult.Ignored));
-            Assert.That(round.Charge, Is.EqualTo(1.75));
-            round.Tick(3);
-            Assert.That(round.Charge, Is.EqualTo(1.5));
+            const double frame = 1.0 / 60.0;
+            round.Tick(1 + frame);
+            Assert.That(round.Charge, Is.EqualTo(1 - frame).Within(1e-9));
+            Assert.That(round.Press(null, 1.25), Is.EqualTo(InputResult.Ignored));
+            Assert.That(round.Charge, Is.EqualTo(0.75));
+            round.Tick(1.5);
+            Assert.That(round.Charge, Is.EqualTo(0.5));
+            round.Tick(2);
+            Assert.That(round.Charge, Is.Zero);
             round.Tick(10);
             Assert.That(round.Charge, Is.Zero);
-            Assert.That(round.Score, Is.EqualTo(3));
+            Assert.That(round.Score, Is.EqualTo(1));
         }
 
         [Test]
-        public void NextArrowRefillsFromTheRemainingChargeAndRenewsTheGracePeriod()
+        public void RefillAddsToRemainingChargeAndResumesDecayImmediately()
         {
             var round = new DungeonRound(() => Direction.Up);
             round.Start(0);
-            for (int i = 1; i <= 4; i++) round.Press(Direction.Up, i);
-            round.Press(Direction.Up, 5.5);
-            Assert.That(round.Charge, Is.EqualTo(4.5));
-            Assert.That(round.LastHitPoints, Is.EqualTo(4));
-            Assert.That(round.IsFrenzy, Is.False);
-            round.Tick(6.5);
-            Assert.That(round.Charge, Is.EqualTo(4.5));
-            round.Press(Direction.Up, 6.5);
-            Assert.That(round.FrenzyRemaining, Is.EqualTo(DungeonRound.FrenzyDuration));
-            Assert.That(round.Charge, Is.Zero);
+            round.Press(Direction.Up, 1);
+            round.Press(Direction.Up, 1.25);
+            round.Tick(1.25);
+            Assert.That(round.Charge, Is.EqualTo(1.75));
+            round.Tick(1.26);
+            Assert.That(round.Charge, Is.EqualTo(1.74).Within(1e-9));
         }
 
         [TestCase(2.999, InputResult.Hit)]
@@ -156,7 +154,8 @@ namespace DdaIT.Tests
         {
             var round = new DungeonRound(() => Direction.Up);
             round.Start(0);
-            for (int i = 1; i <= 5; i++) round.Press(Direction.Up, i);
+            for (int i = 0; i <= 5; i++) round.Press(Direction.Up, 4.375 + i * 0.125);
+            Assert.That(round.IsFrenzy, Is.True);
             Assert.That(round.Press(null, 5 + elapsed), Is.EqualTo(expected));
             Assert.That(round.Press(Direction.Left, 9), Is.EqualTo(InputResult.Miss));
             Assert.That(round.Press(Direction.Up, 10), Is.EqualTo(InputResult.Hit));
@@ -169,10 +168,10 @@ namespace DdaIT.Tests
             var round = new DungeonRound(() => Direction.Up);
             round.Start(0);
             round.Press(Direction.Up, 1);
-            Assert.That(round.Press(null, 1.1), Is.EqualTo(InputResult.Ignored));
-            Assert.That(round.Charge, Is.EqualTo(1));
-            round.Press(Direction.Down, 2);
-            Assert.That(round.Press(Direction.Up, 2.1), Is.EqualTo(InputResult.Ignored));
+            Assert.That(round.Press(null, 1.25), Is.EqualTo(InputResult.Ignored));
+            Assert.That(round.Charge, Is.EqualTo(0.75));
+            round.Press(Direction.Down, 1.5);
+            Assert.That(round.Press(Direction.Up, 1.6), Is.EqualTo(InputResult.Ignored));
             Assert.That(round.Charge, Is.Zero);
         }
 
@@ -181,7 +180,7 @@ namespace DdaIT.Tests
         {
             var round = new DungeonRound(() => Direction.Up);
             round.Start(0);
-            for (int i = 15; i < 20; i++) round.Press(Direction.Up, i);
+            for (int i = 0; i <= 5; i++) round.Press(Direction.Up, 18.375 + i * 0.125);
             Assert.That(round.FrenzyRemaining, Is.EqualTo(1));
             Assert.That(round.Press(null, 20), Is.EqualTo(InputResult.Ignored));
             Assert.That(round.IsFrenzy, Is.False);
